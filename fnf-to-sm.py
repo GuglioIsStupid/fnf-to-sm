@@ -35,7 +35,7 @@ BEAT_TICKS = 48
 # fnf step = 1/16 note
 STEP_TICKS = 12
 
-NUM_COLUMNS = 8
+NUM_COLUMNS = 4
 
 # borrowed from my Sharktooth code
 class TempoMarker:
@@ -115,6 +115,10 @@ def fnf_to_sm(infile):
 			chart_json["diff"] = "Hard"
 			chart_jsons.append(chart_json)
 
+	chartWho = input("Who's side would you like to convert? (boyfriend/dad)").lower()
+	if chartWho == "" or chartWho != "boyfriend" and chartWho != "dad":
+		chartWho = "boyfriend"
+
 	# for each fnf difficulty
 	sm_header = ''
 	sm_notes = ''
@@ -175,34 +179,40 @@ def fnf_to_sm(infile):
 			for section_note in section_notes:
 				tick = timeToTick(section_note[0])
 				note = section_note[1]
+				mustHit = False
 				if section["mustHitSection"]:
-					note = (note + 4) % 8
-				length = section_note[2]
-				
-				# Initialize a note for this tick position
-				if tick not in notes:
-					notes[tick] = [0]*NUM_COLUMNS
+					mustHit = True
+				if ((note < 4 and chartWho == "boyfriend" and mustHit) or (not mustHit and note >= 4 and chartWho == "boyfriend")) or (note >= 4 and chartWho == "dad" and mustHit or not mustHit and note < 4 and chartWho == "dad"):
+					length = section_note[2]
+					
+					# Initialize a note for this tick position
+					if tick not in notes:
+						notes[tick] = [0]*NUM_COLUMNS
 
-				if length == 0:
-					notes[tick][note] = 1
-				else:
-					notes[tick][note] = 2
-					# 3 is "long note toggle off", so we need to set it after a 2
-					long_end = timeToTick(section_note[0] + section_note[2])
-					if long_end not in notes:
-						notes[long_end] = [0]*NUM_COLUMNS
-					notes[long_end][note] = 3
-					if last_note < long_end:
-						last_note = long_end
+					print(note, mustHit, chartWho)
 
-				if last_note <= tick:
-					last_note = tick + 1
+					note = (note) % 4
+
+					if length == 0:
+						notes[tick][note] = 1
+					else:
+						notes[tick][note] = 2
+						# 3 is "long note toggle off", so we need to set it after a 2
+						long_end = timeToTick(section_note[0] + section_note[2])
+						if long_end not in notes:
+							notes[long_end] = [0]*NUM_COLUMNS
+						notes[long_end][note] = 3
+						if last_note < long_end:
+							last_note = long_end
+
+					if last_note <= tick:
+						last_note = tick + 1
 
 		if len(notes) > 0:
 			# write chart & difficulty info
 			sm_notes += "\n"
 			sm_notes += "#NOTES:\n"
-			sm_notes += "	  dance-double:\n"
+			sm_notes += "	  dance-single:\n"
 			sm_notes += "	  :\n"
 			sm_notes += "	  {}:\n".format(chart_json["diff"]) # e.g. Challenge:
 			sm_notes += "	  {}:\n".format(diff_value)
